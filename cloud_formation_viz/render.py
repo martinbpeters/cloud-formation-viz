@@ -2,12 +2,12 @@
 
 
 def write_output(output_file, graph):
-    dot_text = render(graph)
+    dot_text = render(graph, set())
     
     output_file.write(dot_text)
     
     
-def render(graph, subgraph=False):
+def render(graph, node_set, subgraph=False):
     indent = '    ' if subgraph else '  '
     dot_text = '%s "%s" {\n' % ('  subgraph' if subgraph else 'digraph', graph['name'].strip())
     dot_text += '{}labeljust=l;\n'.format(indent)
@@ -20,13 +20,20 @@ def render(graph, subgraph=False):
         dot_text += '{}rank={}\n'.format(indent, graph['rank'])
 
     for n in graph['nodes']:
+        node_set.add(n['name'])
         dot_text += '{}"{}"\n'.format(indent, n['name'])
 
     for s in graph['subgraphs']:
-        dot_text += render(s, True) + '\n'
+        dot_text += render(s, node_set, True) + '\n'
+
+    def clean_edge(edge):
+        return edge.split('.')[0]
 
     for e in graph['edges']:
-        dot_text += '{}"{}" -> "{}";\n'.format(indent, e['from'], e['to'])
+        e_from = clean_edge(e['from'])
+        e_to = clean_edge(e['to'])
+        if e_from in node_set and e_to in node_set:
+            dot_text += '{}"{}" -> "{}";\n'.format(indent, e_from, e_to)
 
     dot_text += '  }' if subgraph else '}'
     

@@ -2,12 +2,16 @@
 
 import sys
 import click
-from .parser import read_input
+from .parser import cfn_parser
 from .render import write_output
 
 @click.command()
 @click.argument("input", type=click.File("r"), default=sys.stdin)
 @click.argument('output', type=click.File('w'), default=sys.stdout)
+@click.option('--parameters/--no-parameters', default=True)
+@click.option('--outputs/--no-outputs', default=True)
+@click.option('--pseudo/--no-pseudo', default=True)
+@click.option('--globals/--no-globals', default=True)
 @click.version_option(message='Visualise AWS Cloudformation Templates, Version %(version)s')
 @click.pass_context
 def main(ctx, **kwargs):
@@ -20,13 +24,21 @@ def main(ctx, **kwargs):
 
     input_file = kwargs.pop('input')
     output_file = kwargs.pop('output')
+    parameters_bool = kwargs.pop('parameters')
+    outputs_bool = kwargs.pop('outputs')
+    pseudo_bool = kwargs.pop('pseudo')
+    globals_bool = kwargs.pop('globals')
 
     if input_file.name == "<stdin>" and sys.stdin.isatty():
         click.echo(ctx.get_help())
         ctx.exit()
 
     try:
-        graph = read_input(input_file)
+        cfn_parser_obj = cfn_parser(
+            parameters_bool, outputs_bool, 
+            pseudo_bool, globals_bool
+        )
+        graph = cfn_parser_obj.read_input(input_file)
     except Exception as e:
         raise click.ClickException("{}".format(e))
 

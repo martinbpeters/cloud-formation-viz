@@ -9,3 +9,14 @@ def flatten(x):
         else:
             result.append(el)
     return result
+
+pseudo_parameters = [
+    'AWS::AccountId',
+    'AWS::NotificationARNs',
+    'AWS::NoValue',
+    'AWS::Partition',
+    'AWS::Region',
+    'AWS::StackId',
+    'AWS::StackName',
+    'AWS::URLSuffix'
+]
