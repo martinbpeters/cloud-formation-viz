@@ -11,15 +11,32 @@ source .venv/bin/activate
 python setup.py install
 ````
 
+The help message can be printed with the following command:
+```` bash
+cfviz --help
+
+Usage: cfviz [OPTIONS] [INPUT] [OUTPUT]
+
+  INPUT input filename [default: stdin]
+
+  OUTPUT output filename [default: stdout]
+
+Options:
+  --version  Show the version and exit.
+  --help     Show this message and exit.
+````
+
 It outputs Graphviz dot files. It can be used like this where 
 example.template is a json cloudformation template:
 ```` bash
 cat example.template | cfviz | dot -Tsvg -oexample.svg
 ````
 
-The following can be used with yaml formatted templates:
+The following can also be used:
 ```` bash
 cfviz example.yaml | dot -Tsvg -oexample.svg
+cfviz example.yaml - | dot -Tsvg -oexample.svg
+cfviz example.yaml example.dot
 ````
 
 The only dependency of the `cfviz` script is Python (>=3.7) and the PyYaml 
