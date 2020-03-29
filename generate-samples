@@ -40,7 +40,7 @@ def is_template(url):
 def render(url):
     template = urlopen(url).read()
     p = subprocess.Popen(
-        'cfviz | dot -Tsvg -o %s' % output_for(url), shell=True,
+        'cfviz --no-unique-edges | dot -Tsvg -o %s' % output_for(url), shell=True,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output, _ = p.communicate(input=template)
     if output:
