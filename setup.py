@@ -20,7 +20,8 @@ setup(
     },
     python_requires='>=3.7',
     install_requires=[
-        "pyyaml"
+        "pyyaml",
+        "Click"
     ],
     classifiers=[
         "Environment :: Console",
