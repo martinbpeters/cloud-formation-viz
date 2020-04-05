@@ -21,7 +21,8 @@ setup(
     python_requires='>=3.7',
     install_requires=[
         "pyyaml",
-        "Click"
+        "Click",
+        "cfn-flip"
     ],
     classifiers=[
         "Environment :: Console",
