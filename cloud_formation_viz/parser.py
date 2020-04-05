@@ -3,6 +3,7 @@
 import sys
 import json
 import yaml
+import re
 import datetime
 from numbers import Number
 from .utils import flatten, pseudo_parameters
@@ -68,10 +69,9 @@ class cfn_parser(object):
         return graph
 
     def read_yaml(self, template_text):
-        cfn_intrinsic_functions = ['!GetAtt', '!Ref', '!Sub']
-        for f in cfn_intrinsic_functions:
-            template_text = template_text.replace(f, ' ')
-        template = yaml.load(template_text, Loader=yaml.FullLoader)
+        from cfn_tools import load_yaml
+        template = load_yaml(template_text)
+
         return template
 
     def handle_terminals(self, template, graph, name, rank):
@@ -112,7 +112,7 @@ class cfn_parser(object):
         for e in edges:
             if e['from'].startswith(u'AWS::'):
                 params.add(e['from'])
-        graph['nodes'].extend({'name': n} for n in params)
+        graph['nodes'].extend({'name': n, 'type': 'Pseudo'} for n in params)
         return graph
 
     def extract_graph(self, name, elem):
@@ -134,6 +134,7 @@ class cfn_parser(object):
         return graph, edges
 
     def find_refs(self, context, elem):
+        edge_type = ''
         if isinstance(elem, dict):
             refs = []
             for k, v in elem.items():
@@ -141,10 +142,19 @@ class cfn_parser(object):
                     continue
                 if k == 'Ref':
                     assert isinstance(v, str), 'Expected a string: %s' % v
-                    refs.append({'from': v, 'to': context})
+                    refs.append({'from': v, 'to': context, 'type': edge_type})
                 elif k == 'Fn::GetAtt':
                     assert isinstance(v, list), 'Expected a list: %s' % v
-                    refs.append({'from': v[0], 'to': context})
+                    refs.append({'from': v[0], 'to': context, 'type': edge_type})
+                elif k == 'Fn::Sub':
+                    for param in re.findall(r"\${\w+}", v):
+                        refs.append({'from': param.replace("${", "").replace("}", ""), 'to': context, 'type': edge_type})
+                elif k == 'DependsOn':
+                    if isinstance(v, list):
+                        for d in v:
+                            refs.append({'from': d, 'to': context, 'type': 'DependsOn'})
+                    elif isinstance(v, str):
+                        refs.append({'from': v, 'to': context, 'type': 'DependsOn'})
                 else:
                     refs.extend(self.find_refs(context, v))
             return refs
