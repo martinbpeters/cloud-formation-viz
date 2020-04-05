@@ -1,0 +1,218 @@
+{
+  "Resources": {
+    "MasterUserSecret68CFFBC6": {
+      "Type": "AWS::SecretsManager::Secret",
+      "Properties": {
+        "GenerateSecretString": {
+          "ExcludeCharacters": "\"@/\\",
+          "GenerateStringKey": "password",
+          "PasswordLength": 30,
+          "SecretStringTemplate": "{\"username\":\"admin_user\"}"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "AuroraServerless/MasterUserSecret/Resource"
+      }
+    },
+    "AuroraServerlessSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Aurora Postgres Serverless Subnet Group",
+        "SubnetIds": [
+          {
+            "Fn::ImportValue": "VPC:ExportsOutputRefVPCDBSubnet1Subnet5E0CF118CB3D9039"
+          },
+          {
+            "Fn::ImportValue": "VPC:ExportsOutputRefVPCDBSubnet2SubnetDABA49CF0613452F"
+          }
+        ],
+        "DBSubnetGroupName": "auroraserverlesssubnetgroup"
+      },
+      "Metadata": {
+        "aws:cdk:path": "AuroraServerless/AuroraServerlessSubnetGroup"
+      }
+    },
+    "SecurityGroupDD263621": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Allow ssh access to ec2 instances",
+        "SecurityGroupEgress": [
+          {
+            "CidrIp": "0.0.0.0/0",
+            "Description": "Allow all outbound traffic by default",
+            "IpProtocol": "-1"
+          }
+        ],
+        "SecurityGroupIngress": [
+          {
+            "CidrIp": "10.0.0.0/16",
+            "Description": "allow psql through",
+            "FromPort": 5432,
+            "IpProtocol": "tcp",
+            "ToPort": 5432
+          }
+        ],
+        "VpcId": {
+          "Fn::ImportValue": "VPC:ExportsOutputRefVPCB9E5F0B4BD23A326"
+        }
+      },
+      "Metadata": {
+        "aws:cdk:path": "AuroraServerless/SecurityGroup/Resource"
+      }
+    },
+    "AuroraServerlessDB": {
+      "Type": "AWS::RDS::DBCluster",
+      "Properties": {
+        "Engine": "aurora-postgresql",
+        "AvailabilityZones": [
+          "eu-west-1a",
+          "eu-west-1b"
+        ],
+        "DatabaseName": "slsdb",
+        "DBClusterIdentifier": "aurora-serverless-postgres-db",
+        "DBSubnetGroupName": "auroraserverlesssubnetgroup",
+        "DeletionProtection": false,
+        "EnableCloudwatchLogsExports": [
+          "error",
+          "general",
+          "slowquery",
+          "audit"
+        ],
+        "EnableHttpEndpoint": true,
+        "EngineMode": "serverless",
+        "MasterUsername": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "MasterUserSecret68CFFBC6"
+              },
+              ":SecretString:username::}}"
+            ]
+          ]
+        },
+        "MasterUserPassword": {
+          "Fn::Join": [
+            "",
+            [
+              "{{resolve:secretsmanager:",
+              {
+                "Ref": "MasterUserSecret68CFFBC6"
+              },
+              ":SecretString:password::}}"
+            ]
+          ]
+        },
+        "Port": 5432,
+        "ScalingConfiguration": {
+          "AutoPause": true,
+          "MaxCapacity": 16,
+          "MinCapacity": 2,
+          "SecondsUntilAutoPause": 300
+        },
+        "VpcSecurityGroupIds": [
+          {
+            "Fn::GetAtt": [
+              "SecurityGroupDD263621",
+              "GroupId"
+            ]
+          }
+        ]
+      },
+      "DependsOn": [
+        "AuroraServerlessSubnetGroup",
+        "SecurityGroupDD263621"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "AuroraServerless/AuroraServerlessDB"
+      }
+    },
+    "secretattachment": {
+      "Type": "AWS::SecretsManager::SecretTargetAttachment",
+      "Properties": {
+        "SecretId": {
+          "Ref": "MasterUserSecret68CFFBC6"
+        },
+        "TargetId": {
+          "Ref": "AuroraServerlessDB"
+        },
+        "TargetType": "AWS::RDS::DBCluster"
+      },
+      "DependsOn": [
+        "AuroraServerlessDB"
+      ],
+      "Metadata": {
+        "aws:cdk:path": "AuroraServerless/secret_attachment"
+      }
+    }
+  },
+  "Outputs": {
+    "StackName": {
+      "Description": "Stack Name",
+      "Value": "AuroraServerless",
+      "Export": {
+        "Name": "eu-west-1:123456789111:AuroraServerless:stack-name"
+      }
+    },
+    "DatabaseName": {
+      "Description": "Database Name",
+      "Value": "slsdb",
+      "Export": {
+        "Name": "eu-west-1:123456789111:AuroraServerless:database-name"
+      }
+    },
+    "DatabaseClusterArn": {
+      "Description": "Database Cluster Arn",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "arn:aws:rds:eu-west-1:123456789111:cluster:",
+            {
+              "Ref": "AuroraServerlessDB"
+            }
+          ]
+        ]
+      },
+      "Export": {
+        "Name": "eu-west-1:123456789111:AuroraServerless:database-cluster-arn"
+      }
+    },
+    "DatabaseSecretArn": {
+      "Description": "Database Secret Arn",
+      "Value": {
+        "Ref": "MasterUserSecret68CFFBC6"
+      },
+      "Export": {
+        "Name": "eu-west-1:123456789111:AuroraServerless:database-secret-arn"
+      }
+    },
+    "DatabaseClusterID": {
+      "Description": "Database Cluster Id",
+      "Value": "aurora-serverless-postgres-db",
+      "Export": {
+        "Name": "eu-west-1:123456789111:AuroraServerless:database-cluster-id"
+      }
+    },
+    "AuroraEndpointAddress": {
+      "Description": "Aurora Endpoint Address",
+      "Value": {
+        "Fn::GetAtt": [
+          "AuroraServerlessDB",
+          "Endpoint.Address"
+        ]
+      },
+      "Export": {
+        "Name": "eu-west-1:123456789111:AuroraServerless:aurora-endpoint-address"
+      }
+    },
+    "DatabaseMasterUserName": {
+      "Description": "Database Master User Name",
+      "Value": "admin_user",
+      "Export": {
+        "Name": "eu-west-1:123456789111:AuroraServerless:database-master-username"
+      }
+    }
+  }
+}
