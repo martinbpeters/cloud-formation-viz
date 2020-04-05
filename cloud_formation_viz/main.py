@@ -13,6 +13,7 @@ from .render import write_output
 @click.option('--outputs/--no-outputs', default=True)
 @click.option('--pseudo/--no-pseudo', default=True)
 @click.option('--globals/--no-globals', default=True)
+@click.option("--icons-path", type=click.Path(exists=True))
 @click.version_option(message='Visualise AWS Cloudformation Templates, Version %(version)s')
 @click.pass_context
 def main(ctx, **kwargs):
@@ -29,6 +30,7 @@ def main(ctx, **kwargs):
     pseudo_bool = kwargs.pop('pseudo')
     globals_bool = kwargs.pop('globals')
     unique_edges_bool = kwargs.pop('unique_edges')
+    icons_path = kwargs.pop('icons_path')
 
     if input_file.name == "<stdin>" and sys.stdin.isatty():
         click.echo(ctx.get_help())
@@ -44,7 +46,7 @@ def main(ctx, **kwargs):
         raise click.ClickException("{}".format(e))
 
     try:
-        write_output(output_file, graph, unique_edges_bool)
+        write_output(output_file, graph, unique_edges_bool, icons_path)
     except Exception as e:
         raise click.ClickException("{}".format(e))
 
