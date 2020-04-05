@@ -39,3 +39,5 @@ test.svg
 .DS_Store
 .idea/
 .venv/
+icons/*.png
+tests/output/*
